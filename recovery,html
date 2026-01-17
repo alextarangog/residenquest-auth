@@ -49,7 +49,7 @@
   <script>
     // ✅ Replace with your project values
     const SUPABASE_URL = "https://hfknqqsnzmvixvodgkpm.supabase.co";
-    const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+    const SUPABASE_ANON_KEY = "sb_publishable_euRrSBnYzneBY0qLrBI2ow_forlipav";
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
