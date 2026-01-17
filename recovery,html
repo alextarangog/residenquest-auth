@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ResidenQuest - Recuperación</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f3ff; margin:0; padding:24px; }
+    .card { max-width:560px; margin:0 auto; background:#fff; border-radius:18px; padding:22px;
+            box-shadow:0 8px 24px rgba(0,0,0,.08); }
+    .title { font-size:22px; font-weight:900; color:#4b2aad; }
+    .hint { margin-top:10px; color:#666; line-height:1.5; }
+    .row { margin-top:14px; }
+    label { display:block; font-size:13px; color:#333; margin-bottom:6px; font-weight:700; }
+    input { width:100%; padding:12px; border-radius:12px; border:1px solid #ddd; font-size:15px; }
+    button { margin-top:16px; width:100%; padding:12px; border-radius:12px; border:none;
+             background:#673ab7; color:#fff; font-weight:900; font-size:16px; cursor:pointer; }
+    .msg { margin-top:14px; padding:12px; border-radius:12px; font-size:14px; line-height:1.5; }
+    .ok { background:#e8f5e9; color:#1b5e20; }
+    .err { background:#ffebee; color:#b71c1c; }
+    code { background:#f3f3f3; padding:2px 6px; border-radius:8px; }
+  </style>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="card">
+    <div class="title">ResidenQuest</div>
+    <div class="hint">
+      Establece una nueva contraseña para tu cuenta.
+    </div>
+
+    <div id="status" class="msg" style="display:none;"></div>
+
+    <div class="row">
+      <label>Nueva contraseña</label>
+      <input id="pw1" type="password" placeholder="Mínimo 8 caracteres" />
+    </div>
+
+    <div class="row">
+      <label>Confirmar contraseña</label>
+      <input id="pw2" type="password" placeholder="Repite tu contraseña" />
+    </div>
+
+    <button id="btn" onclick="resetPassword()">Guardar nueva contraseña</button>
+  </div>
+
+  <script>
+    // ✅ Replace with your project values
+    const SUPABASE_URL = "https://hfknqqsnzmvixvodgkpm.supabase.co";
+    const SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_KEY_HERE";
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const statusEl = document.getElementById("status");
+    const btnEl = document.getElementById("btn");
+
+    function showStatus(type, text) {
+      statusEl.style.display = "block";
+      statusEl.className = "msg " + (type === "ok" ? "ok" : "err");
+      statusEl.textContent = text;
+    }
+
+    // Parse tokens from URL hash or query
+    function getParams() {
+      const hash = window.location.hash.startsWith("#") ? window.location.hash.substring(1) : "";
+      const hashParams = new URLSearchParams(hash);
+      const queryParams = new URLSearchParams(window.location.search);
+
+      return {
+        access_token: hashParams.get("access_token"),
+        refresh_token: hashParams.get("refresh_token"),
+        type: hashParams.get("type") || queryParams.get("type"),
+        code: queryParams.get("code"),
+      };
+    }
+
+    async function ensureSessionFromLink() {
+      const p = getParams();
+
+      // Most Option-A-friendly case: implicit flow gives tokens in the URL hash
+      if (p.access_token && p.refresh_token) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: p.access_token,
+          refresh_token: p.refresh_token,
+        });
+        if (error) throw error;
+        return data.session;
+      }
+
+      // If you see ?code=... you’re likely in PKCE mode.
+      // This often WON’T work on a static page if the code_verifier lives in a different client.
+      if (p.code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(p.code);
+        if (error) throw error;
+        return data.session;
+      }
+
+      throw new Error(
+        "No se encontró sesión en el enlace. Revisa que el Redirect URL sea correcto y/o usa AuthFlowType.implicit en Flutter."
+      );
+    }
+
+    async function resetPassword() {
+      try {
+        btnEl.disabled = true;
+
+        const pw1 = document.getElementById("pw1").value.trim();
+        const pw2 = document.getElementById("pw2").value.trim();
+
+        if (!pw1 || !pw2) {
+          showStatus("err", "Por favor completa ambos campos.");
+          return;
+        }
+        if (pw1.length < 8) {
+          showStatus("err", "La contraseña debe tener al menos 8 caracteres.");
+          return;
+        }
+        if (pw1 !== pw2) {
+          showStatus("err", "Las contraseñas no coinciden.");
+          return;
+        }
+
+        // Step 1: authenticate the browser session from the recovery link
+        await ensureSessionFromLink();
+
+        // Step 2: update password (requires an authenticated session)
+        const { data, error } = await supabase.auth.updateUser({ password: pw1 });
+        if (error) throw error;
+
+        showStatus("ok", "✅ Contraseña actualizada. Ya puedes volver a la app e iniciar sesión.");
+      } catch (e) {
+        showStatus("err", "Error: " + (e?.message || e));
+      } finally {
+        btnEl.disabled = false;
+      }
+    }
+
+    // Optional: show a hint early
+    (async () => {
+      try {
+        const p = getParams();
+        if (p.type && p.type !== "recovery") {
+          showStatus("err", "Este enlace no es de recuperación (type=" + p.type + ").");
+        }
+      } catch (_) {}
+    })();
+  </script>
+</body>
+</html>
