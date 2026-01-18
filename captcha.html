@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Turnstile</title>
+
+  <link rel="preconnect" href="https://challenges.cloudflare.com">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background: transparent; }
+    .wrap { display:flex; align-items:center; justify-content:center; height:100vh; }
+    .hint { color:#666; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hint">Verificando…</div>
+    <div class="cf-turnstile"
+         data-sitekey="PASTE_YOUR_TURNSTILE_SITE_KEY_HERE"
+         data-callback="onSuccess"
+         data-error-callback="onError"
+         data-expired-callback="onExpired"
+         data-timeout-callback="onError"
+         data-size="invisible"></div>
+  </div>
+
+  <script>
+    function send(msg) {
+      // Flutter WebView JS channel
+      if (window.Captcha && window.Captcha.postMessage) {
+        window.Captcha.postMessage(msg);
+      }
+    }
+    function onSuccess(token) { send(token); }
+    function onError() { send("ERROR"); }
+    function onExpired() { send("EXPIRED"); }
+  </script>
+</body>
+</html>
