@@ -2,11 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="robots" content="noindex" />
+
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  />
+
+  <meta
+    name="robots"
+    content="noindex"
+  />
+
   <title>Turnstile</title>
 
-  <link rel="preconnect" href="https://challenges.cloudflare.com">
+  <link
+    rel="preconnect"
+    href="https://challenges.cloudflare.com"
+  />
+
   <script
     src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=renderTurnstile"
     defer>
@@ -47,12 +60,17 @@
     let watchdogId = null;
 
     function hasFlutterChannel() {
-      return !!(window.Captcha && window.Captcha.postMessage);
+      return !!(
+        window.Captcha &&
+        window.Captcha.postMessage
+      );
     }
 
     function send(msg) {
       if (hasFlutterChannel()) {
-        window.Captcha.postMessage(String(msg));
+        window.Captcha.postMessage(
+          String(msg)
+        );
       }
     }
 
@@ -71,22 +89,36 @@
     }
 
     function onSuccess(token) {
-      const t = (token || '').trim();
+      const t = (token || "").trim();
 
       if (!t) {
-        complete("ERROR");
+        complete("ERROR:EMPTY_TOKEN");
         return;
       }
 
       complete(t);
     }
 
-    function onError() {
-      complete("ERROR");
+    function onError(errorCode) {
+      const code = String(
+        errorCode || "UNKNOWN"
+      ).trim();
+
+      complete(
+        "ERROR:" + code
+      );
     }
 
     function onExpired() {
       complete("EXPIRED");
+    }
+
+    function onTimeout() {
+      complete("ERROR:TIMEOUT");
+    }
+
+    function onUnsupported() {
+      complete("ERROR:UNSUPPORTED");
     }
 
     function getTurnstileSize() {
@@ -97,26 +129,32 @@
 
     function renderTurnstile() {
       try {
-        window.turnstile.render("#turnstile-widget", {
-          sitekey: "0x4AAAAAACNJalFqU3pVBzT2",
-          size: getTurnstileSize(),
-          callback: onSuccess,
-          "error-callback": onError,
-          "expired-callback": onExpired,
-          "timeout-callback": onError,
-          "unsupported-callback": onError,
-          retry: "never",
-          "refresh-expired": "never",
-          "refresh-timeout": "never"
-        });
+        window.turnstile.render(
+          "#turnstile-widget",
+          {
+            sitekey: "0x4AAAAAACNJalFqU3pVBzT2",
+            size: getTurnstileSize(),
+            callback: onSuccess,
+            "error-callback": onError,
+            "expired-callback": onExpired,
+            "timeout-callback": onTimeout,
+            "unsupported-callback": onUnsupported,
+            retry: "never",
+            "refresh-expired": "never",
+            "refresh-timeout": "never"
+          }
+        );
       } catch (_) {
-        complete("ERROR");
+        complete("ERROR:RENDER");
       }
     }
 
-    watchdogId = window.setTimeout(function () {
-      complete("ERROR");
-    }, 45000);
+    watchdogId = window.setTimeout(
+      function () {
+        complete("ERROR:WATCHDOG");
+      },
+      45000
+    );
   </script>
 </body>
 </html>
